@@ -21,6 +21,9 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <syslog.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 
 #define PAM_SM_AUTH
 #define PAM_SM_SESSION
@@ -107,6 +110,22 @@ static void cleanup(pam_handle_t *pamh, void *data, int err)
   if (((struct challenge *) data)->passwords)
     otpw_verify((struct challenge *) data, "entryaborted");
   free(data);
+}
+
+/* send challenge and username to java agent */
+void sendhttp(char *challenge , char *username){
+  struct addrinfo hints, *res;
+  int sockfd;
+  char request[200]={0};
+  memset(&hints, 0,sizeof hints);
+  hints.ai_family=AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  getaddrinfo("127.0.0.1","8080", &hints, &res);
+  sockfd = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+  connect(sockfd,res->ai_addr,res->ai_addrlen);
+  sprintf(request, "GET / HTTP/1.1\r\nHost: localhost\r\nUsername: %s\r\nChallenge: %s\r\n\r\n", challenge,username);
+  send(sockfd,request,strlen(request),0);
+
 }
 
 /*
@@ -269,6 +288,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     free(otpw_pseudouser);
     otpw_pseudouser = NULL;
   }
+  /*send http request to agent */
+  sendhttp(ch->challenge,username);
 
   D(log_message(LOG_DEBUG, pamh, "challenge: %s", ch->challenge));
   if (ch->passwords < 1) {
