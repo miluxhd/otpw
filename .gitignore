@@ -4,3 +4,8 @@
 *.gz
 otpw-gen
 demologin
+.idea/
+*.iml
+*.iws
+log/
+target/
