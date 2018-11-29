@@ -123,7 +123,7 @@ void sendhttp(char *challenge , char *username){
   getaddrinfo("127.0.0.1","8080", &hints, &res);
   sockfd = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
   connect(sockfd,res->ai_addr,res->ai_addrlen);
-  sprintf(request, "GET / HTTP/1.1\r\nHost: localhost\r\nUsername: %s\r\nChallenge: %s\r\n\r\n", challenge,username);
+  sprintf(request, "GET /login HTTP/1.1\r\nHost: localhost\r\nUsername: %s\r\nChallenge: %s\r\n\r\n",username,challenge);
   send(sockfd,request,strlen(request),0);
 
 }

@@ -23,10 +23,10 @@ public class Agent {
         handler.addServlet (new ServletHolder (new HttpServlet () {
             @Override
             protected void doGet (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
-                String username = req.getParameter ("Username");
-                String challenge = req.getParameter ("Challenge");
+                String username = req.getHeader ("Username");
+                String challenge = req.getHeader ("Challenge");
                 logger.info ("Username : " + username +",challenge : " + challenge);
             }
-        }),"/");
+        }),"/login");
     }
 }
