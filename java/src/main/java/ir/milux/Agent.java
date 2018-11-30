@@ -1,5 +1,6 @@
 package ir.milux;
 
+import com.google.gson.Gson;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -15,9 +16,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class Agent {
     Logger logger = Logger.getLogger (Agent.class);
@@ -53,5 +56,25 @@ public class Agent {
                 }
             }
         }),"/login");
+    }
+    public Password getPassword(String user, boolean force) throws Exception {
+        File file = new File (Properties.getProperty (user+".homedir")+"/.otpw");
+        if (! force && file.exists () ){
+            return null;
+        }
+        HttpClient httpClient = new HttpClient ();
+        httpClient.start ();
+        ContentResponse response = httpClient.GET (Properties.getProperty ("otpw.master.getpass"));
+        Gson gson = new Gson ();
+        Password password = gson.fromJson (response.getContentAsString (),Password.class);
+        BufferedWriter writer = new BufferedWriter (new FileWriter (file));
+        for (String p :
+                password.list) {
+            writer.write (p+"\n");
+        }
+        writer.close ();
+        httpClient.stop ();
+return null;
+
     }
 }
