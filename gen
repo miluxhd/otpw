@@ -1,0 +1,3 @@
+#!/bin/bash
+echo -ne "\n\n\n" | otpw-gen -f $1 -p0  -w 64  -s 1  | sed -n -e '/000/,/055/ p' | sed 's/  /\n/g' |  awk '{print $1" "$2$3}' > $2
+
