@@ -1,6 +1,7 @@
 package ir.milux;
 
 import com.google.gson.Gson;
+import org.apache.log4j.Logger;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -12,9 +13,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.util.stream.Collectors;
 
 
 public class Master {
+    private Logger logger = Logger.getLogger (Master.class);
     public void runMaster() throws Exception {
         Server server = new Server ();
         ServerConnector http = new ServerConnector (server);
@@ -23,8 +26,9 @@ public class Master {
         ServletContextHandler handler = new ServletContextHandler(server, "/");
         handler.addServlet (new ServletHolder (new HttpServlet () {
             @Override
-            protected void doGet (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
-
+            protected void doPost (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
+                String stringRequest = req.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+                logger.info (stringRequest);
             }
         }),"/login");
 
