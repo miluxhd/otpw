@@ -13,6 +13,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 
@@ -20,6 +24,7 @@ public class Master {
     private Logger logger = Logger.getLogger (Master.class);
     public void runMaster() throws Exception {
         Server server = new Server ();
+        DB db = new DB ();
         ServerConnector http = new ServerConnector (server);
         http.setPort(Integer.parseInt (Properties.getProperty ("master.port")));
         server.addConnector(http);
@@ -28,16 +33,33 @@ public class Master {
             @Override
             protected void doPost (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
                 String stringRequest = req.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
-                logger.info (stringRequest);
+                Gson gson = new Gson ();
+                System.out.println (stringRequest);
+                MessageRequest request = gson.fromJson (stringRequest , MessageRequest.class);
+                StringBuilder password = new StringBuilder ();
+                try {
+                    List<String> challenges = Arrays.asList (request.challenge.split ("/"));
+                    for (String ch :
+                            challenges) {
+                     password.append (db.getPassword (request.username,request.uuid,ch));
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace ();
+                }
+                MessageSender sender = new MessageSender ();
+                sender.send ("phonenumber/email/...",password.toString ());
             }
         }),"/login");
 
         handler.addServlet (new ServletHolder (new HttpServlet () {
             @Override
             protected void doGet (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
+                String uuid = req.getParameter ("uuid");
+                String user = req.getParameter ("user");
                 Password passowrds = new Password ();
+                HashMap<String, String> plainPass = null;
                 try {
-                    passowrds.generate ();
+                    plainPass = passowrds.generate ();
                 } catch (InterruptedException e) {
                     e.printStackTrace ();
                 }
@@ -46,9 +68,16 @@ public class Master {
                 resp.setHeader("Content-Type", "application/json; charset=utf-8");
                 resp.getWriter ().write (gson.toJson (passowrds));
 
-                // TODO : save original passwords into database
+                try {
+                    db.flushUser (user,uuid);
+                    db.store (user,uuid,plainPass);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace ();
+                } catch (SQLException e) {
+                    e.printStackTrace ();
+                }
             }
-        }),"/getpass");
+        }),"/getpass/*");
         server.start ();
     }
 }

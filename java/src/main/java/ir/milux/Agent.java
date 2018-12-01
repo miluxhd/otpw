@@ -33,13 +33,13 @@ public class Agent {
             writer.close ();
         }
         List<String> users = Arrays.asList (Properties.getProperty ("agent.otwp.users").split (","));
+        final String uuid = new String (Files.readAllBytes (uuidFile.toPath ()));
         for (String user: users
              ) {
-            getPassword (user,false);
+            getPassword (uuid.trim (),user,false);
         }
 
         Server server = new Server ();
-        final String uuid = new String (Files.readAllBytes (uuidFile.toPath ()));
         ServerConnector http = new ServerConnector (server);
         http.setPort(8080);
         server.addConnector(http);
@@ -57,12 +57,17 @@ public class Agent {
                 }
                 Request request =  httpClient.POST (Properties.getProperty ("agent.otpw.login"));
                 request.header(HttpHeader.CONTENT_TYPE, "application/json");
-                request.content(new StringContentProvider ("{\"username\":"+username
-                        +",\"challenge\":"+challenge
-                        +",\"uuid\":"+uuid+
-                        "}","utf-8"));
+//                "{\"username\":"+username
+//                        +",\"challenge\":"+challenge
+//                        +",\"uuid\":"+uuid+
+//                        "}","utf-8"
+                MessageRequest messageRequest = new MessageRequest ();
+                messageRequest.setChallenge (challenge);
+                messageRequest.setUsername (username);
+                messageRequest.setUuid (uuid);
+                Gson gson = new Gson ();
+                request.content(new StringContentProvider(gson.toJson (messageRequest)));
                 try {
-                    logger.info ("sending challenge");
                     ContentResponse response = request.send();
                     httpClient.stop();
                 }catch (Exception e){
@@ -72,14 +77,15 @@ public class Agent {
         }),"/login");
 server.start ();
     }
-    public void getPassword(String user, boolean force) throws Exception {
+    public void getPassword(String uuid,String user, boolean force) throws Exception {
         File file = new File ("/home/"+user+"/.otpw");
         if (! force && file.exists () ){
             return;
         }
         HttpClient httpClient = new HttpClient ();
         httpClient.start ();
-        ContentResponse response = httpClient.GET (Properties.getProperty ("agent.otpw.getpass"));
+        String uri = Properties.getProperty ("agent.otpw.getpass")+"?uuid="+uuid+"&user="+user;
+        ContentResponse response = httpClient.GET (uri);
         Gson gson = new Gson ();
         Password password = gson.fromJson (response.getContentAsString (),Password.class);
         BufferedWriter writer = new BufferedWriter (new FileWriter (file));
