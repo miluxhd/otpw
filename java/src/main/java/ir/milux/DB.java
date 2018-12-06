@@ -5,8 +5,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DB {
-    String store ="insert into password values(?,?,?,?)";
-    String get = "select password from password where user=? and uuid=? and challenge=?";
+    String store ="insert into password values(?,?,?,?,?)";
+    String getPassword = "select phone,password from password where user=? and uuid=? and challenge=?";
+    String getPhone = "select phone from password where user=? and uuid=?";
     String purge = "delete from password where user=? and uuid=?";
     Connection con = null;
 
@@ -15,7 +16,7 @@ public class DB {
         con = DriverManager.getConnection("jdbc:mysql://localhost:3306/"+Properties.getProperty ("master.db.name"),
                 Properties.getProperty ("master.db.user"),Properties.getProperty ("master.db.password"));
     }
-    public void store(  String user, String uuid,HashMap<String,String> password) throws ClassNotFoundException, SQLException {
+    public void store(  String user , String phone, String uuid,HashMap<String,String> password) throws ClassNotFoundException, SQLException {
 
         PreparedStatement statement =con.prepareStatement(store);
         statement.setString (1,uuid);
@@ -24,17 +25,28 @@ public class DB {
                 password.entrySet ()) {
             statement.setString (3,s.getKey ());
             statement.setString (4,s.getValue ());
+            statement.setString (5,phone);
             statement.execute ();
         }
     }
-    public String getPassword(String user,String uuid,String challenge) throws SQLException {
-        PreparedStatement statement = con.prepareStatement (get);
+    public String getPassword(String user, String uuid, String challenge) throws SQLException {
+        PreparedStatement statement = con.prepareStatement (getPassword);
         statement.setString (1,user);
         statement.setString (2,uuid);
         statement.setString (3,challenge);
         ResultSet results = statement.executeQuery ();
         while (results.next ()){
            return results.getString ("password");
+        }
+        return  null;
+    }
+    public String getPhoneNumber(String user,String uuid) throws SQLException {
+        PreparedStatement statement = con.prepareStatement (getPhone);
+        statement.setString (1,user);
+        statement.setString (2,uuid);
+        ResultSet results = statement.executeQuery ();
+        while (results.next ()){
+            return results.getString ("phone");
         }
         return  null;
     }
