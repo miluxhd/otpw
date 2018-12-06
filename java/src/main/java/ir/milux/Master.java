@@ -47,7 +47,11 @@ public class Master {
                     e.printStackTrace ();
                 }
                 MessageSender sender = new MessageSender ();
-                sender.send ("phonenumber/email/...",password.toString ());
+                try {
+                    sender.send (db.getPhoneNumber (request.username,request.uuid),password.toString ());
+                } catch (Exception e) {
+                    e.printStackTrace ();
+                }
             }
         }),"/login");
 
@@ -56,6 +60,8 @@ public class Master {
             protected void doGet (HttpServletRequest req , HttpServletResponse resp) throws ServletException, IOException {
                 String uuid = req.getParameter ("uuid");
                 String user = req.getParameter ("user");
+                String phone = req.getParameter ("phone");
+
                 Password passowrds = new Password ();
                 HashMap<String, String> plainPass = null;
                 try {
@@ -66,16 +72,16 @@ public class Master {
                 Gson gson = new Gson ();
                 resp.setStatus(HttpStatus.OK_200);
                 resp.setHeader("Content-Type", "application/json; charset=utf-8");
-                resp.getWriter ().write (gson.toJson (passowrds));
 
                 try {
                     db.flushUser (user,uuid);
-                    db.store (user,uuid,plainPass);
+                    db.store (user,phone,uuid,plainPass);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace ();
                 } catch (SQLException e) {
                     e.printStackTrace ();
                 }
+                resp.getWriter ().write (gson.toJson (passowrds));
             }
         }),"/getpass/*");
         server.start ();
