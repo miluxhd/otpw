@@ -6,10 +6,6 @@ OTPW is a one-time password authentication library and PAM module that
 provides a number of advantages over other systems.
 
 
-![otpw diagram](https://raw.githubusercontent.com/miluxhd/otpw/master/OTPW.png)
-
-
-
 Please read the documentation in the file otpw.html for details.
 
 -- 
