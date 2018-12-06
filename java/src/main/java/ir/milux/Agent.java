@@ -17,6 +17,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.GroupPrincipal;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -57,10 +62,6 @@ public class Agent {
                 }
                 Request request =  httpClient.POST (Properties.getProperty ("agent.otpw.login"));
                 request.header(HttpHeader.CONTENT_TYPE, "application/json");
-//                "{\"username\":"+username
-//                        +",\"challenge\":"+challenge
-//                        +",\"uuid\":"+uuid+
-//                        "}","utf-8"
                 MessageRequest messageRequest = new MessageRequest ();
                 messageRequest.setChallenge (challenge);
                 messageRequest.setUsername (username);
@@ -78,13 +79,15 @@ public class Agent {
 server.start ();
     }
     public void getPassword(String uuid,String user, boolean force) throws Exception {
-        File file = new File ("/home/"+user+"/.otpw");
+        File file = new File ("/home/"+user.split (":")[0]+"/.otpw");
         if (! force && file.exists () ){
             return;
         }
         HttpClient httpClient = new HttpClient ();
         httpClient.start ();
-        String uri = Properties.getProperty ("agent.otpw.getpass")+"?uuid="+uuid+"&user="+user;
+        String uri = Properties.getProperty ("agent.otpw.getpass")+"?uuid="+uuid+
+                "&user="+user.split (":")[0]+
+                "&phone="+user.split (":")[1];
         ContentResponse response = httpClient.GET (uri);
         Gson gson = new Gson ();
         Password password = gson.fromJson (response.getContentAsString (),Password.class);
@@ -94,6 +97,15 @@ server.start ();
             writer.write (p+"\n");
         }
         writer.close ();
+        File home = new File("/home/"+user.split (":")[0]+"/.");
+        GroupPrincipal group = Files.readAttributes(home.toPath (),
+                PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS).group();
+        UserPrincipal owner = Files.readAttributes (home.toPath () ,
+                PosixFileAttributes.class , LinkOption.NOFOLLOW_LINKS).owner ();
+
+        PosixFileAttributeView attributeView = Files.getFileAttributeView (file.toPath () , PosixFileAttributeView.class , LinkOption.NOFOLLOW_LINKS);
+        attributeView.setGroup (group);
+        attributeView.setOwner (owner);
         httpClient.stop ();
 return;
 
